@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: main
+  name: main
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: main
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: main
+    spec:
+      containers:
+      - image: luckyparakh/main:2.0.0
+        name: main
+        resources: {}
+status: {}
