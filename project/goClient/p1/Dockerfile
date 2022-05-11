@@ -1,4 +1,4 @@
-FROM --platform=arm64 ubuntu
+FROM ubuntu
 
 COPY ./main.exe ./main.exe
 
