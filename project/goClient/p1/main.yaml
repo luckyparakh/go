@@ -18,7 +18,7 @@ spec:
         app: main
     spec:
       containers:
-      - image: luckyparakh/main:2.0.0
+      - image: localhost:5001/main
         name: main
         resources: {}
 status: {}
