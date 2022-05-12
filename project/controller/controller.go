@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -58,35 +59,60 @@ func (c *controller) processItem() bool {
 	if shutdown {
 		return false
 	}
-	key,err:=cache.MetaNamespaceKeyFunc(item)
-	if err!=nil{
-		fmt.Printf("Getting key from Cache:%s\n",err.Error())
+	defer c.queue.Forget(item)// Once itme is processed succesfully remove from list, to avoid re-processing
+	key, err := cache.MetaNamespaceKeyFunc(item)
+	if err != nil {
+		fmt.Printf("Getting key from Cache:%s\n", err.Error())
 		return false
 	}
-	ns,name,err:=cache.SplitMetaNamespaceKey(key)
-	if err!=nil{
+	ns, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
 		fmt.Println("Getting erro while spilting key")
 		return false
 	}
-	err = c.syncDeployment(ns,name)
-	if err!=nil{
+	err = c.syncDeployment(ns, name)
+	if err != nil {
 		//re-try
 		fmt.Println("Getting erro while spilting key")
 		return false
 	}
 	return true
 }
-func (c *controller) syncDeployment(ns,name string) error{
-	ctx:=context.Background()
-	svc:=corev1.Service{}
-	_,err:=c.clientSet.CoreV1().Services(ns).Create(ctx,&svc,metav1.CreateOptions{})
-	if err != nil{
+func (c *controller) syncDeployment(ns, name string) error {
+	ctx := context.Background()
+	dep, err := c.depLister.Deployments(ns).Get(name)
+	if err != nil {
+		fmt.Println("Error while getting deployment name")
+	}
+	svc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dep.Name,
+			Namespace: ns,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: depPodLables(dep),
+			Ports: []corev1.ServicePort{
+				{
+					Name: "http",
+					Port: 80,
+				},
+			},
+		},
+	}
+	_, err = c.clientSet.CoreV1().Services(ns).Create(ctx, &svc, metav1.CreateOptions{})
+
+	if err != nil {
 		fmt.Println("Error creating service")
-		
+
 	}
 
 	return nil
 }
+
+func depPodLables(dep *appsv1.Deployment) map[string]string {
+	return dep.Spec.Template.Labels
+}
+
 func (c *controller) handleAdd(obj interface{}) {
 	fmt.Println("Add called")
 	c.queue.Add(obj)
