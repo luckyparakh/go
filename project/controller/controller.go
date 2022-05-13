@@ -7,6 +7,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appinformer "k8s.io/client-go/informers/apps/v1"
@@ -59,7 +60,7 @@ func (c *controller) processItem() bool {
 	if shutdown {
 		return false
 	}
-	defer c.queue.Forget(item)// Once itme is processed succesfully remove from list, to avoid re-processing
+	defer c.queue.Forget(item) // Once itme is processed succesfully remove from list, to avoid re-processing
 	key, err := cache.MetaNamespaceKeyFunc(item)
 	if err != nil {
 		fmt.Printf("Getting key from Cache:%s\n", err.Error())
@@ -106,9 +107,47 @@ func (c *controller) syncDeployment(ns, name string) error {
 
 	}
 
-	return nil
+	return c.createIngress(ctx, svc)
 }
 
+func (c *controller) createIngress(ctx context.Context, svc corev1.Service) error {
+	pathtype := "Prefix"
+	ingress := netv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svc.Name,
+			Namespace: svc.Namespace,
+			Annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/rewrite-target": "/",
+			},
+		},
+		Spec: netv1.IngressSpec{
+			Rules: []netv1.IngressRule{
+				{
+					IngressRuleValue: netv1.IngressRuleValue{
+						HTTP: &netv1.HTTPIngressRuleValue{
+							Paths: []netv1.HTTPIngressPath{
+								{
+									Path:     fmt.Sprintf("/%s", svc.Name),
+									PathType: (*netv1.PathType)(&pathtype),
+									Backend: netv1.IngressBackend{
+										Service: &netv1.IngressServiceBackend{
+											Name: svc.Name,
+											Port: netv1.ServiceBackendPort{
+												Number: 80,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	_, err := c.clientSet.NetworkingV1().Ingresses(svc.Namespace).Create(ctx, &ingress, metav1.CreateOptions{})
+	return err
+}
 func depPodLables(dep *appsv1.Deployment) map[string]string {
 	return dep.Spec.Template.Labels
 }
