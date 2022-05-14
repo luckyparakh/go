@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appinformer "k8s.io/client-go/informers/apps/v1"
@@ -68,13 +69,26 @@ func (c *controller) processItem() bool {
 	}
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		fmt.Println("Getting erro while spilting key")
+		fmt.Println("Getting error while spilting key")
 		return false
 	}
+	ctx := context.Background()
+	_, err = c.clientSet.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		fmt.Printf("Handle delete of %v", name)
+		if err := c.clientSet.CoreV1().Services(ns).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+			fmt.Printf("Error deleting svc:%s\n", err.Error())
+		}
+		if err := c.clientSet.NetworkingV1().Ingresses(ns).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+			fmt.Printf("Error deleting ingress:%s\n", err.Error())
+		}
+		return true
+	}
+
 	err = c.syncDeployment(ns, name)
 	if err != nil {
 		//re-try
-		fmt.Println("Getting erro while spilting key")
+		fmt.Println("Getting error while creating deployment")
 		return false
 	}
 	return true
@@ -158,4 +172,5 @@ func (c *controller) handleAdd(obj interface{}) {
 }
 func (c *controller) handleDel(obj interface{}) {
 	fmt.Println("Del called")
+	c.queue.Add(obj)
 }

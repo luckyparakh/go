@@ -1,0 +1,2 @@
+https://github.com/xingdl2007/gopl-solutions
+https://github.com/torbiak/gopl

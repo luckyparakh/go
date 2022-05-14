@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: dummydep
+  name: dummydep
+  namespace: ekspose
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dummydep
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dummydep
+    spec:
+      serviceAccountName: ekspose-sa
+      containers:
+      - image: luckyparakh/expose:1.0.0
+        name: expose
+        resources: {}
+status: {}
