@@ -28,21 +28,21 @@ func main() {
 		fmt.Printf("Error %s loading configuration.", err.Error())
 	}
 	
-	ctx := context.Background()
-	pods,err:=client.CoreV1().Pods("default").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		fmt.Printf("Error %s fetching pods.", err.Error())
-	}
-	fmt.Println("Pods")
-	for _, pod := range pods.Items {
-		fmt.Printf("%s", pod.Name)
-		fmt.Println()
-	}
+	// ctx := context.Background()
+	// pods,err:=client.CoreV1().Pods("default").List(ctx, metav1.ListOptions{})
+	// if err != nil {
+	// 	fmt.Printf("Error %s fetching pods.", err.Error())
+	// }
+	// fmt.Println("Pods")
+	// for _, pod := range pods.Items {
+	// 	fmt.Printf("%s", pod.Name)
+	// 	fmt.Println()
+	// }
 
 	ch := make(chan struct{})
 	informers := informers.NewSharedInformerFactory(client, 10*time.Minute)
 	c := newController(client, informers.Apps().V1().Deployments())
 	informers.Start(ch)
 	c.run(ch)
-	fmt.Println(informers)
+	//fmt.Println(informers)
 }

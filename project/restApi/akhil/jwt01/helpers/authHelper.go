@@ -17,7 +17,7 @@ func MatchUserTypeToUid(c *gin.Context, userId string) error {
 	return err
 }
 
-func checkUserType(c *gin.Context, role string) error {
+func CheckUserType(c *gin.Context, role string) error {
 	userType := c.GetString("user_type")
 	if userType != role {
 		return errors.New("Unauthorized access")
