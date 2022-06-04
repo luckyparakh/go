@@ -1,0 +1,13 @@
+@host = localhost:8000
+
+// Token Generation
+
+POST http://{{host}}/api/token HTTP/1.1
+Content-Type: application/json
+
+{
+    "email": "mukesh@go.com",
+    "password": "123465789"
+}
+
+###
