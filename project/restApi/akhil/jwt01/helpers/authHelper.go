@@ -13,7 +13,7 @@ func MatchUserTypeToUid(c *gin.Context, userId string) error {
 		err := errors.New("Unauthorized access")
 		return err
 	}
-	err := checkUserType(c, userType)
+	err := CheckUserType(c, userType)
 	return err
 }
 

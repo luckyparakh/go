@@ -92,4 +92,6 @@ func ValidateToken(clientToken string) (claims *signedDetails, msg string) {
 		msg = err.Error()
 		return
 	}
+	msg = fmt.Sprintf("Token is valid")
+	return
 }
