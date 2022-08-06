@@ -1,33 +1,29 @@
 package controller
 
 import (
-	"encoding/json"
 	"mvc/service"
 	"mvc/utils"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
-func GetUser(w http.ResponseWriter, r *http.Request) {
-	userIdParam, err := strconv.ParseInt(r.URL.Query().Get("user_id"), 10, 64)
+func GetUser(ctx *gin.Context) {
+	userIdParam, err := strconv.ParseInt(ctx.Param("user_id"), 10, 64)
 	if err != nil {
-		userErr:=&utils.AppError{
-			Message: "user should be number",
+		userErr := &utils.AppError{
+			Message:    "user should be number",
 			StatusCode: http.StatusBadRequest,
-			Code: "bad_request",
+			Code:       "bad_request",
 		}
-		jsonVal,_:=json.Marshal(userErr)
-		w.WriteHeader(userErr.StatusCode)
-		w.Write(jsonVal)
+		utils.RespondErr(ctx, userErr)
 		return
 	}
 	user, appErr := service.UserService.GetUser(userIdParam)
 	if appErr != nil {
-		w.WriteHeader(appErr.StatusCode)
-		w.Write([]byte(appErr.Message))
+		utils.RespondErr(ctx, appErr)
 		return
 	}
-
-	jsonValue, _ := json.Marshal(user)
-	w.Write(jsonValue)
+	utils.Respond(ctx, http.StatusOK, user)
 }
