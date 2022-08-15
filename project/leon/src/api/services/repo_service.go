@@ -6,12 +6,13 @@ import (
 	"example/domain/repo"
 	"example/provider/github_provider"
 	"example/utils/errors"
-	"strings"
+	"net/http"
 )
 
 type repoService struct{}
 type repoServiceInterface interface {
 	CreateRepo(req repo.ServiceRepoRequest) (*repo.ServiceRepoResponse, errors.ApiError)
+	CreateRepos(req []repo.ServiceRepoRequest) (repo.ServiceReposResponse, errors.ApiError)
 }
 
 var (
@@ -23,9 +24,8 @@ func init() {
 }
 
 func (s *repoService) CreateRepo(req repo.ServiceRepoRequest) (*repo.ServiceRepoResponse, errors.ApiError) {
-	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" {
-		return nil, errors.NewBadRequestError("invalid repo name")
+	if err := req.Validate(); err != nil {
+		return nil, err
 	}
 	request := github.CreateRepoRequest{
 		Name:        req.Name,
@@ -44,4 +44,58 @@ func (s *repoService) CreateRepo(req repo.ServiceRepoRequest) (*repo.ServiceRepo
 	}
 
 	return &result, nil
+}
+
+func (s *repoService) CreateRepos(req []repo.ServiceRepoRequest) (repo.ServiceReposResponse, errors.ApiError) {
+	ip := make(chan repo.ReposResponse)
+	op := make(chan repo.ServiceReposResponse)
+	defer close(op)
+	go s.handleResult(ip, op)
+	for _, r := range req {
+		go s.createRepoCon(r, ip)
+	}
+	result := <-op
+	successCount := 0
+	for _, current := range result.Result {
+		if current.Response != nil {
+			successCount++
+		}
+	}
+	if successCount == 0 {
+		result.StatusCode = result.Result[0].Error.Status()
+	} else if successCount == len(req) {
+		result.StatusCode = http.StatusCreated
+	} else {
+		result.StatusCode = http.StatusPartialContent
+	}
+	return result, nil
+}
+
+func (s *repoService) handleResult(ip chan repo.ReposResponse, op chan repo.ServiceReposResponse) {
+	var results repo.ServiceReposResponse
+	defer close(op)
+	for resp := range ip {
+		results.Result = append(results.Result, resp)
+	}
+	op <- results
+}
+
+func (s *repoService) createRepoCon(r repo.ServiceRepoRequest, c chan repo.ReposResponse) {
+
+	if err := r.Validate(); err != nil {
+		c <- repo.ReposResponse{
+			Error: err,
+		}
+		return
+	}
+	response, err := s.CreateRepo(r)
+	if err != nil {
+		c <- repo.ReposResponse{
+			Error: err,
+		}
+		return
+	}
+	c <- repo.ReposResponse{
+		Response: response,
+	}
 }

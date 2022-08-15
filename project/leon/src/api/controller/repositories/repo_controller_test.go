@@ -64,7 +64,7 @@ func TestCreateValidGitResponse(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "/repo", strings.NewReader(`{"name":"rp"}`))
 	c.Request = req
 	CreateRepo(c)
-	
+
 	assert.EqualValues(t, http.StatusCreated, response.Code)
 	var resp repo.ServiceRepoResponse
 	err := json.Unmarshal(response.Body.Bytes(), &resp)
