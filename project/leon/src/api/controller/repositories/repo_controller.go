@@ -20,7 +20,7 @@ func CreateRepo(c *gin.Context) {
 	}
 	response, err := services.RepoService.CreateRepo(request)
 	if err != nil {
-		apiErr := errors.NewBadRequestError("invalid request")
+		apiErr := errors.NewBadRequestError(err.Message())
 		c.JSON(apiErr.Status(), apiErr.Message())
 		return
 	}

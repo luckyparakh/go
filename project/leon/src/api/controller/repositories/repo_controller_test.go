@@ -46,7 +46,7 @@ func TestCreateInvalidGitResponse(t *testing.T) {
 	c.Request = req
 	CreateRepo(c)
 	assert.EqualValues(t, http.StatusBadRequest, response.Code)
-	assert.EqualValues(t, response.Body.String(), "\"invalid request\"")
+	assert.EqualValues(t, response.Body.String(), "\"error while parsing result\"")
 }
 
 func TestCreateValidGitResponse(t *testing.T) {
